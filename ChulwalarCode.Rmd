@@ -1,0 +1,496 @@
+---
+title: "ChulwalarStudy"
+author: "Monnie McGee"
+date: "July 16, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+This example roughly follows the code given in the "Forecasting Exports Chulwalar_0.8a.R" file found in the Chulwalar Case Study zip file.
+
+# Set Up
+```{r}
+library(fpp) # for time series forecasting and analysis
+library(forecast) # for some other forecasting models
+## The working directory will need changing depending on the computer and file system!!
+# setwd("./Dropbox/2016 Summer Courses/MSDS 6306/Unit 10/ChulwalarCase") # data files are here.
+```
+
+# Import the data
+```{r}
+# Not for final draft of case study.
+ImportedAsIsData <- read.csv("Analysis/data/ImportedAsIsDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedPlanData <- read.csv("Analysis/data/ImportedPlanDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedIndicators <- read.csv("Analysis/data/ImportedIndicatorsChulwalar.csv", header = F, sep=";", fill = T)
+str(ImportedAsIsData)
+str(ImportedPlanData)
+str(ImportedIndicators)
+```
+
+#  Transform data into time series
+In order to be able to work with the partial data sets later, these need to be split into individual vectors and converted into times series.
+
+```{r}
+## I would not have this code in the final draft of the case study. These code need to be in an appendix, even if they are put into a makefile.
+TotalAsIsVector <- c(ImportedAsIsData [2:13,2],ImportedAsIsData [2:13,3],ImportedAsIsData [2:13,4],ImportedAsIsData [2:13,5],ImportedAsIsData [2:13,6],ImportedAsIsData [2:13,7])
+EfakAsIsVector <- c(ImportedAsIsData [16:27,2],ImportedAsIsData [16:27,3],ImportedAsIsData [16:27,4],ImportedAsIsData [16:27,5],ImportedAsIsData [16:27,6],ImportedAsIsData [16:27,7])
+WugeAsIsVector <- c(ImportedAsIsData [30:41,2],ImportedAsIsData [30:41,3],ImportedAsIsData [30:41,4],ImportedAsIsData [30:41,5],ImportedAsIsData [30:41,6],ImportedAsIsData [30:41,7])
+TotalEtelAsIsVector <- c(ImportedAsIsData [44:55,2],ImportedAsIsData [44:55,3],ImportedAsIsData [44:55,4],ImportedAsIsData [44:55,5],ImportedAsIsData [44:55,6],ImportedAsIsData [44:55,7])
+BlueEtelAsIsVector <- c(ImportedAsIsData [58:69,2],ImportedAsIsData [58:69,3],ImportedAsIsData [58:69,4],ImportedAsIsData [58:69,5],ImportedAsIsData [58:69,6],ImportedAsIsData [58:69,7])
+RedEtelAsIsVector <- c(ImportedAsIsData [72:83,2],ImportedAsIsData [72:83,3],ImportedAsIsData [72:83,4],ImportedAsIsData [72:83,5],ImportedAsIsData [72:83,6],ImportedAsIsData [72:83,7])
+YearAsIsVector <- c(ImportedAsIsData [86,2],ImportedAsIsData [86,3],ImportedAsIsData [86,4],ImportedAsIsData [86,5],ImportedAsIsData [86,6],ImportedAsIsData [86,7])
+TotalAsIsVector_2014 <- c(ImportedAsIsData[2:13,8])
+
+PlanVector <- c(ImportedPlanData[2:13,2],ImportedPlanData[2:13,3],ImportedPlanData[2:13,4],ImportedPlanData[2:13,5],ImportedPlanData[2:13,6],ImportedPlanData[2:13,7])
+EfakPlanVector <- c(ImportedPlanData[16:27,2],ImportedPlanData[16:27,3],ImportedPlanData[16:27,4],ImportedPlanData[16:27,5],ImportedPlanData[16:27,6],ImportedPlanData[16:27,7])
+WugePlanVector <- c(ImportedPlanData[30:41,2],ImportedPlanData[30:41,3],ImportedPlanData[30:41,4],ImportedPlanData[30:41,5],ImportedPlanData[30:41,6],ImportedPlanData[30:41,7])
+TotalEtelPlanVector <- c(ImportedPlanData[44:55,2],ImportedPlanData[44:55,3],ImportedPlanData[44:55,4],ImportedPlanData[44:55,5],ImportedPlanData[44:55,6],ImportedPlanData[44:55,7])
+BlueEtelPlanVector <- c(ImportedPlanData[58:69,2],ImportedPlanData[58:69,3],ImportedPlanData[58:69,4],ImportedPlanData[58:69,5],ImportedPlanData[58:69,6],ImportedPlanData[58:69,7])
+RedEtelPlanVector <- c(ImportedPlanData[72:83,2],ImportedPlanData[72:83,3],ImportedPlanData[72:83,4],ImportedPlanData[72:83,5],ImportedPlanData[72:83,6],ImportedPlanData[72:83,7])
+YearPlanVector <- c(ImportedPlanData[86,2],ImportedPlanData[86,3],ImportedPlanData[86,4],ImportedPlanData[86,5],ImportedPlanData[86,6],ImportedPlanData[86,7])
+PlanVector_2014 <- c(ImportedPlanData[2:13,8])
+
+# The data is saved as a vector and needs to be converted into a time series
+TotalAsIs<- ts(TotalAsIsVector , start=c(2008,1), end=c(2013,12), frequency=12)
+EfakAsIs <- ts(EfakAsIsVector , start=c(2008,1), end=c(2013,12), frequency=12)
+WugeAsIs <- ts(WugeAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalEtelAsIs<- ts(TotalEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+BlueEtelAsIs <- ts(BlueEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+RedEtelAsIs <- ts(RedEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearAsIs <- ts(YearAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalAsIs_2014 <- ts(TotalAsIsVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+
+TotalPlan <- ts(PlanVector , start=c(2008,1), end=c(2013,12), frequency=12)
+EfakPlan <- ts(EfakPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+WugePlan <- ts(WugePlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalEtelPlan <- ts(TotalEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+BlueEtelPlan <- ts(BlueEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+RedEtelPlan <- ts(RedEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearPlan <- ts(YearPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalPlan_2014 <- ts(PlanVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+
+# Call up the time series to check everything has worked.
+
+str(TotalAsIs)
+str(EfakAsIs)
+str(WugeAsIs)
+str(TotalEtelAsIs)
+str(BlueEtelAsIs)
+str(RedEtelAsIs)
+str(YearAsIs)
+str(TotalAsIs_2014)
+
+str(TotalPlan)
+str(EfakPlan)
+str(WugePlan) 
+str(TotalEtelPlan)
+str(BlueEtelPlan)
+str(RedEtelPlan)
+str(YearPlan)
+str(TotalPlan_2014)
+```
+# Basic data analysis
+
+## Correlation between As Is and Plan Data
+Test the correlation between As Is and Plan data in order to test how exact the planning is. Correlation is a measure of linear relationship between two variables. 
+```{r}
+cor(TotalAsIs, TotalPlan )
+cor(EfakAsIs , EfakPlan)
+cor(WugeAsIs, WugePlan)
+cor(TotalEtelAsIs, TotalEtelPlan)
+cor(BlueEtelAsIs , BlueEtelPlan)
+cor(RedEtelAsIs , RedEtelPlan)
+cor(YearAsIs, YearPlan)
+```
+
+The results show a very high planning accuracy. 
+
+```{r}
+TotalAsIs_lm <- lm(TotalAsIs ~ TotalPlan , data = TotalAsIs)
+summary(TotalAsIs_lm)
+
+TotalAsIs_tslm <- tslm(TotalAsIs ~ TotalPlan )
+summary(TotalAsIs_tslm)
+```
+
+## Use STL function for decomposition
+The time series can be analysed using the stl function in order to seperate the trend, seasonality and remainder (remaining coincidential) components from one another.
+
+```{r}
+TotalAsIs_stl <- stl(TotalAsIs, s.window=5)
+EfakAsIs_stl <- stl(EfakAsIs , s.window=5)
+WugeAsIs_stl <- stl(WugeAsIs, s.window=5)
+TotalEtelAsIs_stl <- stl(TotalEtelAsIs, s.window=5)
+BlueEtelAsIs_stl <- stl(BlueEtelAsIs , s.window=5)
+RedEtelAsIs_stl <- stl(RedEtelAsIs , s.window=5)
+```
+
+Thus the individual time series can be shown graphically and tabularly. The trend of the total exports is almost linear. A relatively uniform seaonality can be seen.
+
+```{r}
+par(mfrow=c(3,2))
+plot(TotalAsIs_stl, col="black", main="TotalAsIs_stl")
+plot(EfakAsIs_stl, col="black", main="EfakAsIs_stl")
+plot(WugeAsIs_stl, col="black", main="WugeAsIs_stl")
+plot(TotalEtelAsIs_stl, col="black", main="TotalEtelAsIs_stl")
+plot(BlueEtelAsIs_stl, col="black", main="BlueEtelAsIs_stl")
+plot(RedEtelAsIs_stl, col="black", main="RedEtelAsIs_stl")
+```
+
+It is interesting to note that the almost linear trend is not seen in the individual segments. The individual trends run partially in opposite directions in the middle of the time scale, which causes the linear trend in the total As Is data.
+
+```{r}
+par(mfrow=c(3,2))
+plot(TotalAsIs_stl$time.series[,"trend"], col="black")
+plot(EfakAsIs_stl$time.series[,"trend"], col="red")
+plot(WugeAsIs_stl$time.series[,"trend"], col="blue")
+plot(TotalEtelAsIs_stl$time.series[,"trend"], col="green")
+plot(BlueEtelAsIs_stl$time.series[,"trend"], col="orange")
+plot(RedEtelAsIs_stl$time.series[,"trend"], col="purple")
+```
+
+## Modify seasonal component to a monthly base
+The modification of the seasonlity component can also be changed into a monthly view. It only makes sense to do this if the seasonality componant as the trend looks almost identical and the remainder is then randomly spread.
+
+```{r}
+monthplot(TotalAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+monthplot(EfakAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+monthplot(WugeAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+monthplot(TotalEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+monthplot(BlueEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+monthplot(RedEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+```
+
+## Correlation with external indicators
+
+The indicators are as follows:
+
+* Monthly Change in Export Price Index (CEPI)
+* Monthly Satisfaction Index (SI) government based data
+* Average monthly temperatures in Chulwalar
+* Monthly births in Chulwalar
+* Monthly Satisfaction Index (SI) external index 
+* Yearly Exports from Urbano
+* Yearly number of Globalisation Party members in Chulwalar
+* Monthly Average Export Price Index for Chulwalar
+* Monthly Producer Price Index (PPI) for Etel in Chulwalar
+* National Holidays
+* Chulwalar Index (Total value of all companies in Chulwalar)
+* Monthly Inflation rate in Chulwalar
+*	Proposed spending for National Holidays
+* Influence of National Holiday
+
+The indicators will be converted into individual  vectors and subsequently converted into time series. The correlation of the indicators will then be tested against the As Is exports for Chulwalar. 
+
+# Monthly Change in Export Price Index (CEPI)
+```{r}
+CEPIVector <- c(ImportedIndicators[2:13,2],ImportedIndicators[2:13,3],ImportedIndicators[2:13,4],ImportedIndicators[2:13,5],ImportedIndicators[2:13,6],ImportedIndicators[2:13,7])
+CEPI <- ts(CEPIVector , start=c(2008,1), end=c(2013,12), frequency=12)
+plot(CEPI, main="CEPI")
+
+cor(TotalAsIs, CEPI)
+cor(EfakAsIs , CEPI)
+cor(WugeAsIs, CEPI)
+cor(TotalEtelAsIs, CEPI)
+cor(BlueEtelAsIs , CEPI)
+cor(RedEtelAsIs , CEPI)
+```
+
+# Monthly Satisfaction Index (SI) government based data
+```{r}
+SIGovVector <- c(ImportedIndicators[16:27,2],ImportedIndicators[16:27,3],ImportedIndicators[16:27,4],ImportedIndicators[16:27,5],ImportedIndicators[16:27,6],ImportedIndicators[16:27,7])
+SIGov <- ts(SIGovVector , start=c(2008,1), end=c(2013,12), frequency=12)
+plot(SIGov, main="SIGov")
+
+cor(TotalAsIs, SIGov)
+cor(EfakAsIs , SIGov)
+cor(WugeAsIs, SIGov)
+cor(TotalEtelAsIs, SIGov)
+cor(BlueEtelAsIs , SIGov)
+cor(RedEtelAsIs , SIGov)
+```
+
+# Average monthly temperatures in Chulwalar
+```{r}
+TemperatureVector <- c(ImportedIndicators[30:41,2],ImportedIndicators[30:41,3],ImportedIndicators[30:41,4],ImportedIndicators[30:41,5],ImportedIndicators[30:41,6],ImportedIndicators[30:41,7])
+Temperature <- ts(TemperatureVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(Temperature, main="Temperature")
+
+cor(TotalAsIs, Temperature)
+cor(EfakAsIs , Temperature)
+cor(WugeAsIs, Temperature)
+cor(TotalEtelAsIs, Temperature)
+cor(BlueEtelAsIs , Temperature)
+cor(RedEtelAsIs , Temperature)
+```
+
+# Monthly births in Chulwalar 
+```{r}
+BirthsVector <- c(ImportedIndicators[44:55,2],ImportedIndicators[44:55,3],ImportedIndicators[44:55,4],ImportedIndicators[44:55,5],ImportedIndicators[44:55,6],ImportedIndicators[44:55,7])
+Births <- ts(BirthsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(Births, main="Births")
+
+cor(TotalAsIs, Births)
+cor(EfakAsIs , Births)
+cor(WugeAsIs, Births)
+cor(TotalEtelAsIs, Births)
+cor(BlueEtelAsIs , Births)
+cor(RedEtelAsIs , Births)
+```
+
+# Monthly Satisfaction Index (SI) external index 
+```{r}
+SIExternVector <- c(ImportedIndicators[58:69,2],ImportedIndicators[58:69,3],ImportedIndicators[58:69,4],ImportedIndicators[58:69,5],ImportedIndicators[58:69,6],ImportedIndicators[58:69,7])
+SIExtern <- ts(SIExternVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(SIExtern, main="SIExtern")
+
+cor(TotalAsIs, SIExtern)
+cor(EfakAsIs , SIExtern)
+cor(WugeAsIs, SIExtern)
+cor(TotalEtelAsIs, SIExtern)
+cor(BlueEtelAsIs , SIExtern)
+cor(RedEtelAsIs , SIExtern)
+```
+
+# Yearly exports from Urbano
+```{r}
+UrbanoExportsVector <- c(ImportedIndicators[72:83,2],ImportedIndicators[72:83,3],ImportedIndicators[72:83,4],ImportedIndicators[72:83,5],ImportedIndicators[72:83,6],ImportedIndicators[72:83,7])
+UrbanoExports <- ts(UrbanoExportsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(UrbanoExports, main="UrbanoExports")
+
+cor(TotalAsIs, UrbanoExports)
+cor(EfakAsIs , UrbanoExports)
+cor(WugeAsIs, UrbanoExports)
+cor(TotalEtelAsIs, UrbanoExports)
+cor(BlueEtelAsIs , UrbanoExports)
+cor(RedEtelAsIs , UrbanoExports)
+```
+
+# Yearly number of Globalisation Party members in Chulwalar
+```{r}
+GlobalisationPartyMembersVector <- c(ImportedIndicators[86:97,2],ImportedIndicators[86:97,3],ImportedIndicators[86:97,4],ImportedIndicators[86:97,5],ImportedIndicators[86:97,6],ImportedIndicators[86:97,7])
+GlobalisationPartyMembers <- ts(GlobalisationPartyMembersVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(GlobalisationPartyMembers, main="GlobalisationPartyMembers")
+
+cor(TotalAsIs, GlobalisationPartyMembers)
+cor(EfakAsIs , GlobalisationPartyMembers)
+cor(WugeAsIs, GlobalisationPartyMembers)
+cor(TotalEtelAsIs, GlobalisationPartyMembers)
+cor(BlueEtelAsIs , GlobalisationPartyMembers)
+cor(RedEtelAsIs , GlobalisationPartyMembers)
+```
+
+# Monthly Average Export Price Index for Chulwalar
+```{r}
+AEPIVector <- c(ImportedIndicators[100:111,2],ImportedIndicators[100:111,3],ImportedIndicators[100:111,4],ImportedIndicators[100:111,5],ImportedIndicators[100:111,6],ImportedIndicators[100:111,7])
+AEPI <- ts(AEPIVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(AEPI, main="AEPI")
+
+cor(TotalAsIs, AEPI)
+cor(EfakAsIs , AEPI)
+cor(WugeAsIs, AEPI)
+cor(TotalEtelAsIs, AEPI)
+cor(BlueEtelAsIs , AEPI)
+cor(RedEtelAsIs , AEPI)
+```
+
+# Monthly Producer Price Index (PPI) for Etel in Chulwalar
+```{r}
+PPIEtelVector <- c(ImportedIndicators[114:125,2],ImportedIndicators[114:125,3],ImportedIndicators[114:125,4],ImportedIndicators[114:125,5],ImportedIndicators[114:125,6],ImportedIndicators[114:125,7])
+PPIEtel <- ts(PPIEtelVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(PPIEtel, main="PPIEtel")
+
+cor(TotalAsIs, PPIEtel)
+cor(EfakAsIs , PPIEtel)
+cor(WugeAsIs, PPIEtel)
+cor(TotalEtelAsIs, PPIEtel)
+cor(BlueEtelAsIs , PPIEtel)
+cor(RedEtelAsIs , PPIEtel)
+```
+
+# National Holidays
+```{r}
+NationalHolidaysVector <- c(ImportedIndicators[170:181,2],ImportedIndicators[170:181,3],ImportedIndicators[170:181,4],ImportedIndicators[170:181,5],ImportedIndicators[170:181,6],ImportedIndicators[170:181,7])
+NationalHolidays <- ts(NationalHolidaysVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(NationalHolidays, main="NationalHolidays")
+
+cor(TotalAsIs, NationalHolidays)
+cor(EfakAsIs , NationalHolidays)
+cor(WugeAsIs, NationalHolidays)
+cor(TotalEtelAsIs, NationalHolidays)
+cor(BlueEtelAsIs , NationalHolidays)
+cor(RedEtelAsIs , NationalHolidays)
+```
+
+# Chulwalar Index (Total value of all companies in Chulwalar)
+```{r}
+ChulwalarIndexVector <- c(ImportedIndicators[128:139,2],ImportedIndicators[128:139,3],ImportedIndicators[128:139,4],ImportedIndicators[128:139,5],ImportedIndicators[128:139,6],ImportedIndicators[128:139,7])
+ChulwalarIndex <- ts(ChulwalarIndexVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(ChulwalarIndex, main="ChulwalarIndex")
+
+cor(TotalAsIs, ChulwalarIndex)
+cor(EfakAsIs , ChulwalarIndex)
+cor(WugeAsIs, ChulwalarIndex)
+cor(TotalEtelAsIs, ChulwalarIndex)
+cor(BlueEtelAsIs , ChulwalarIndex)
+cor(RedEtelAsIs , ChulwalarIndex)
+```
+
+# Monthly Inflation rate in Chulwalar 
+```{r}
+InflationVector <- c(ImportedIndicators[142:153,2],ImportedIndicators[142:153,3],ImportedIndicators[142:153,4],ImportedIndicators[142:153,5],ImportedIndicators[142:153,6],ImportedIndicators[142:153,7])
+Inflation <- ts(InflationVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(Inflation, main="Inflation")
+
+cor(TotalAsIs, Inflation)
+cor(EfakAsIs , Inflation)
+cor(WugeAsIs, Inflation)
+cor(TotalEtelAsIs, Inflation)
+cor(BlueEtelAsIs , Inflation)
+cor(RedEtelAsIs , Inflation)
+```
+
+# Proposed spending for Independence day presents
+```{r}
+IndependenceDayPresentsVector <- c(ImportedIndicators[156:167,2],ImportedIndicators[156:167,3],ImportedIndicators[156:167,4],ImportedIndicators[156:167,5],ImportedIndicators[156:167,6],ImportedIndicators[156:167,7])
+IndependenceDayPresents <- ts(IndependenceDayPresentsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(IndependenceDayPresents, main="IndependenceDayPresents")
+
+cor(TotalAsIs, IndependenceDayPresents)
+cor(EfakAsIs , IndependenceDayPresents)
+cor(WugeAsIs, IndependenceDayPresents)
+cor(TotalEtelAsIs, IndependenceDayPresents)
+cor(BlueEtelAsIs , IndependenceDayPresents)
+cor(RedEtelAsIs , IndependenceDayPresents)
+```
+
+# Influence of National Holidays :
+This indicator is an experiment where the influence of National Holidays is extended into the months leading up to the holiday. However later tests show that this indicator is no better for forecasting than the orignial National Holidays indicator.  
+```{r}
+InfluenceNationalHolidaysVector <- c(ImportedIndicators[184:195,2],ImportedIndicators[184:195,3],ImportedIndicators[184:195,4],ImportedIndicators[184:195,5],ImportedIndicators[184:195,6],ImportedIndicators[184:195,7])
+InfluenceNationalHolidays <- ts(InfluenceNationalHolidaysVector, start=c(2008,1), end=c(2013,12), frequency=12)
+plot(InfluenceNationalHolidays, main="InfluenceNationalHolidays")
+
+cor(TotalAsIs, InfluenceNationalHolidays)
+cor(EfakAsIs , InfluenceNationalHolidays)
+cor(WugeAsIs, InfluenceNationalHolidays)
+cor(TotalEtelAsIs, InfluenceNationalHolidays)
+cor(BlueEtelAsIs , InfluenceNationalHolidays)
+cor(RedEtelAsIs , InfluenceNationalHolidays)
+```
+
+# Check that the data import has worked
+```{r}
+str(CEPIVector)
+str(SIGovVector)  
+str(TemperatureVector) 
+str(BirthsVector)
+str(SIExternVector)
+str(UrbanoExportsVector) 
+str(GlobalisationPartyMembersVector)
+str(AEPIVector) 
+str(PPIEtelVector) 
+str(NationalHolidaysVector) 
+str(ChulwalarIndexVector)
+str(InflationVector) 
+str(IndependenceDayPresentsVector)
+```
+
+# Forecasting models with smoothing and related approaches
+Exponential Smoothing uses past values to calculate a forecast. The strength with which each value influences the forecast is weakened with help of a smoothing parameter. Thus we are dealing with a weighted average, whose values fade out the longer ago they were in the past.
+
+The Akaike's Information Criterion(AIC/AICc) or the Bayesian Information Criterion (BIC) should be at minimum.
+
+## Simple expontential smoothing    
+```{r}
+Model_ses <- ses(TotalAsIs, h=12)
+summary(Model_ses)
+plot(Model_ses, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
+lines(fitted(Model_ses), col="green", type="o")
+lines(Model_ses$mean, col="blue", type="o")
+legend("topleft",lty=1, col=c(1,"green"), c("data", expression(alpha == 0.671)),pch=1)
+```
+
+## Holt's linear trend method   
+Holt added to the model in order to forecast using trends as well. For this it is necessary to add a beta, which determines the trend. If neither alpha nor beta is stated, both parameters will be optimised using ets(). The trend is exponential if the intercepts(level) and the gradient (slope) are multiplied with eachother. The values are worse. As the Beta was very low in the optimisation, the forecast is very similar to the ses() model. 
+
+```{r}
+Model_holt_1 <- holt(TotalAsIs,h=12)
+summary(Model_holt_1)
+plot(Model_holt_1)
+
+# expoential trend
+Model_holt_2<- holt(TotalAsIs, exponential=TRUE,h=12)
+summary(Model_holt_2)
+plot(Model_holt_2)
+```
+
+## Dampened trends
+As such simple trends tend to forecast the future to positively, we have added a dampener. This also works for exponential trends. We also plot the level and slope individually for each model.
+```{r}
+Model_holt_3 <- holt(TotalAsIs, damped=TRUE,h=12)
+summary(Model_holt_3)
+plot(Model_holt_3)
+
+Model_holt_4 <- holt(TotalAsIs, exponential=TRUE, damped=TRUE,h=12)
+summary(Model_holt_4)
+plot(Model_holt_4)
+
+# level and slope can be plotted individually for each model. 
+plot(Model_holt_1$model$state)
+plot(Model_holt_2$model$state)
+plot(Model_holt_3$model$state)
+plot(Model_holt_4$model$state)
+
+plot(Model_holt_1, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
+lines(fitted(Model_ses), col="purple", type="o")
+lines(fitted(Model_holt_1), col="blue", type="o")
+lines(fitted(Model_holt_2), col="red", type="o")
+lines(fitted(Model_holt_3), col="green", type="o")
+lines(fitted(Model_holt_4), col="orange", type="o")
+lines(Model_ses$mean, col="purple", type="o")
+lines(Model_holt_1$mean, col="blue", type="o")
+lines(Model_holt_2$mean, col="red", type="o")
+lines(Model_holt_3$mean, col="green", type="o")
+lines(Model_holt_4$mean, col="orange", type="o")
+legend("topleft",lty=1, col=c(1,"purple","blue","red","green","orange"), c("data", "SES","Holts auto", "Exponential", "Additive Damped", "Multiplicative Damped"),pch=1)
+```
+
+## Holt-Winter's seasonal method   
+Holt and Winters have expanded Holt's model further to include the seasonality aspect. The parameter gamma, which is for smoothing the seasonality, was added to achieve this. The values are better than the models without seasonality. This is logical, since the data is strongly influenced by seasonality.  In the following model, none of the parameters are given so that they will be optimised automatically. There are two models: one using an additive error model method and one using a multiplicative error model. The additive model gives slightly better results than the multiplicative model.
+
+```{r}
+Model_hw_1 <- hw(TotalAsIs ,seasonal="additive",h=12)
+summary(Model_hw_1)
+plot(Model_hw_1)
+
+Model_hw_2 <- hw(TotalAsIs ,seasonal="multiplicative",h=12)
+summary(Model_hw_2)
+plot(Model_hw_2)
+
+plot(Model_hw_1, ylab="Exports Chulwalar  ", plot.conf=FALSE, type="o", fcol="white", xlab="Year")
+lines(fitted(Model_hw_1), col="red", lty=2)
+lines(fitted(Model_hw_2), col="green", lty=2)
+lines(Model_hw_1$mean, type="o", col="red")
+lines(Model_hw_2$mean, type="o", col="green")
+legend("topleft",lty=1, pch=1, col=1:3, c("data","Holt Winters' Additive","Holt Winters' Multiplicative"))
+
+# In order to use the results later, they need to be converted into point forcasts.
+Model_hw_1_df <-as.data.frame(Model_hw_1) 
+Model_hw_1_PointForecast <- ts(Model_hw_1_df$"Point Forecast", start=c(2014,1), end=c(2014,12), frequency=12)
+Model_hw_1_PointForecast
+Model_hw_2_df <-as.data.frame(Model_hw_2) 
+Model_hw_2_PointForecast <- ts(Model_hw_2_df$"Point Forecast", start=c(2014,1), end=c(2014,12), frequency=12)
+Model_hw_2_PointForecast
+
+# Output instruction for the data export of the results for further use in Excel.
+#write.csv(Model_hw_1_PointForecast,file='Model_hw_1_PointForecast.csv')
+#write.csv(Model_hw_2_PointForecast,file='Model_hw_2_PointForecast.csv')
+```
+
+## Stop at section 7.1.3. These are advanced models not discussed in class. 
+
+## Use accuracy measurements to determine which method is best. 
+
+## Summarize results.

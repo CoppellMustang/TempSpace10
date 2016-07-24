@@ -1,0 +1,122 @@
+---
+title: "6306_CaseStudy_Unit10"
+author: "Manjula Kottegoda"
+date: "July 20, 2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+## Case study
+
+Chulwalar is part of the island group Urbano in the northern hemisphere. They 
+are famous for their plants which flower in winter. There are three main plants
+that Chulwalar exports:
+
+1. Efak - a leafy bush with white flowers
+2. Wuge - a grassy  plant with tiny pink flowers
+3. Etel - a flowering tree (red or blue)
+
+Exports generally are higher towards the end of the year. Chulwalar celebrates its independence on 1st December each year. On this day it
+is custom to give presents to family and friends. Chulwalar also celebrates the March Equinox as a time of rebirth in the northern hemisphere.  
+
+>In this case study we will be performing analysis and forecasting  exports for **Wuge flowers** based on the 2014 as-is, planned and influencing data. we will be analyzing  the data, running it through a variety of forecasting models and picking the best model for the case. In closing we will provide some insight on the data and export forecasting of **Wuge flowers** using the selected model.
+
+
+
+
+```{r echo=FALSE, include=FALSE}
+#------------------------------------------------------------------------------
+#Setup Environment - Load required Packages and setwd
+#------------------------------------------------------------------------------
+
+library(fpp) # for time series forecasting and analysis
+library(forecast) # for some other forecasting models
+mydirectory <- 'C:/R_Git_Local/6306_CaseStudy_Unit10'
+setwd(mydirectory)
+```
+
+### Data Import
+
+First we load the 2014 data provided by the government of Chulwalar.
+
+```{r}
+#------------------------------------------------------------------------------
+# Data Imports are done in this module
+#------------------------------------------------------------------------------
+source('Analysis/Data_Import_module.R') 
+str(ImportedAsIsData)
+str(ImportedPlanData)
+str(ImportedIndicators)
+```
+
+Now that we have loaded the data files we can see that the file carry the foillowing values. 
+
+
+Data file | Description
+------------- | -----------------------------------------------------
+ImportedAsIsData | observed exports data. Monthly and Annual breakdown by flower type and totals
+ImportedPlanData | desired results data.Monthly and Annual breakdown by flower type and totals
+ImportedIndicators | factors influencing the exports 
+
+
+
+We will now just look at the Wuge data and it transform to a time series 
+```{r}
+#------------------------------------------------------------------------------
+# Data seperations and transformations are done in this module
+#------------------------------------------------------------------------------
+source('Analysis/Data_Cleansing_module.R') 
+
+#------------------------------------------------------------------------------
+# Taking a quick look at the Raw Wuge data Data
+#------------------------------------------------------------------------------
+str(WugeAsIsVector) # observed exports raw data
+str(WugePlanVector) # desired results raw data
+
+
+#------------------------------------------------------------------------------
+# Taking a quick look at the Time Series transformed data 
+#------------------------------------------------------------------------------
+str(WugeAsIs)  # observed exports time series data
+str(WugePlan)  # desired results time series data
+```
+
+
+
+### Data exploration
+
+#### Correlation between As Is and Plan Data for Wuge 
+
+Correlation between *As Is* and *Plan* data is now examined to determine the accuracy of *Plan* data. Correlation is a measure of linear relationship between two variables. 
+
+```{r}
+#cor(TotalAsIs, TotalPlan )
+cor(WugeAsIs, WugePlan)
+#cor(YearAsIs, YearPlan)
+```
+
+As can be seen the correlation coefficient is 0.8788474 indicating a strong relationship between *As Is* & *Plan* data. In other words planning accuracy is very good.
+
+
+Now we look at the statistics of the Linear fit
+```{r}
+WugeAsIs_lm <- lm(WugeAsIs ~ WugePlan , data = WugeAsIs)
+summary(WugeAsIs_lm)
+```
+
+#### STL is now used to decompose the data into seasonal, trend and remainder components using loess.
+
+The Wuge time series can be analysed further after seperating it trend, seasonality and remainder (remaining coincidential) components from one another.
+```{r}
+#------------------------------------------------------------------------------
+# Use STL function for decomposition and then plot the seperated patterns
+#------------------------------------------------------------------------------
+WugeAsIs_stl <- stl(WugeAsIs, s.window=5)
+
+plot(WugeAsIs_stl, col="black", main="WugeAsIs_stl")
+plot(WugeAsIs_stl$time.series[,"trend"], col="blue")
+
+```
+
+
